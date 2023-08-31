@@ -1,0 +1,165 @@
+Step 1: Create Spring Boot Project
+
+You can create a Spring Boot project using Spring Initializr or your preferred IDE. Make sure to include the necessary dependencies like Spring Web and Spring Boot DevTools.
+
+Step 2: Create Controller
+
+Create a controller to handle the incoming requests. In this example, I'll create a simple REST controller.
+
+@RestController
+@RequestMapping("/api")
+public class FileTransferController {
+
+    @PostMapping("/transfer")
+    public ResponseEntity<String> transferFile(@RequestBody FileTransferRequest request) {
+        // Implement the file transfer logic here
+        // Invoke Kerberos authentication and SCP command
+        // Call the DataProcessor to parse and store data
+        return ResponseEntity.ok("File transfer and processing successful.");
+    }
+}
+
+
+Step 3: Execute Kerberos Authentication
+
+For executing shell commands, you can use the ProcessBuilder class. Remember to replace placeholders with actual values.
+
+ProcessBuilder kinitProcess = new ProcessBuilder("kinit", "-kt", "path/to/keytab", "principal");
+Process kinit = kinitProcess.start();
+kinit.waitFor();
+
+Step 4: Invoke SCP Command
+
+Use ProcessBuilder again to execute the SCP command.
+
+String remoteHost = "remote.host";
+String remoteFilePath = "/path/to/remote/file";
+String localDirectory = "localDirectory"; // Replace with your desired directory
+
+String localFileName = remoteFilePath.substring(remoteFilePath.lastIndexOf('/') + 1);
+String localFilePath = localDirectory + "/" + remoteHost + "_" + System.currentTimeMillis() + "_" + localFileName;
+
+ProcessBuilder scpProcess = new ProcessBuilder("scp", "user@" + remoteHost + ":" + remoteFilePath, localFilePath);
+Process scp = scpProcess.start();
+scp.waitFor();
+
+Step 5: Create Custom Class
+
+Define a custom class to store the parsed data.
+
+public class CustomData {
+    private String ruleId;
+    private String message;
+    private String timeStamp;
+
+    // Constructors, getters, setters
+}
+
+Step 6: Parse and Store Data
+
+Create a class to handle the parsing and data storage.
+
+public class DataProcessor {
+    public static Map<String, CustomData> processFile(String filePath) {
+        Map<String, CustomData> dataMap = new HashMap<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(";");
+                String host = parts[0];
+                String ruleId = parts[1].split("_")[3];  
+                String message = parts[5];
+                String timeStamp = parts[3];
+
+                CustomData customData = new CustomData();
+                customData.setRuleId(ruleId);
+                customData.setMessage(message);
+                customData.setTimeStamp(timeStamp);
+
+                dataMap.put(host, customData);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return dataMap;
+    }
+}
+
+Also, there's one more thing we need to do, if parts[1].split("_")[0] == "TCPConnectivity", then only we have to put the value, else simply put value as Optional.empty()
+Certainly, you can add a condition to check if parts[1].split("_")[0] equals "TCPConnectivity" before adding the CustomData instance to the list. If it's not "TCPConnectivity", you can add an Optional.empty() value to the list. Here's how you can modify the code:
+
+public class DataProcessor {
+    public static Map<String, List<CustomData>> processFile(String filePath) {
+        Map<String, List<CustomData>> dataMap = new HashMap<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(";");
+                String host = parts[0];
+                String ruleId = parts[1].split("_")[3];
+                String message = parts[5];
+                String timeStamp = parts[3];
+
+                if ("TCPConnectivity".equals(parts[1].split("_")[0])) {
+                    CustomData customData = new CustomData();
+                    customData.setRuleId(ruleId);
+                    customData.setMessage(message);
+                    customData.setTimeStamp(timeStamp);
+
+                    dataMap.computeIfAbsent(host, k -> new ArrayList<>()).add(customData);
+                } else {
+                    dataMap.computeIfAbsent(host, k -> new ArrayList<>()).add(null); // Add Optional.empty()
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return dataMap;
+    }
+}
+
+In this code, when parts[1].split("_")[0] is not "TCPConnectivity", we add null to the list, which can be treated as an Optional.empty() value. This way, your map will still have the same structure, and you can handle the absence of CustomData instances where needed.
+
+But, we want that host as well, which doesn't have "TCPConnectivity". So, what I want is, if the host doesn't have "TCPConnectivity", we just want a single value Optional.empty() 
+
+public class DataProcessor {
+    public static Map<String, Optional<List<CustomData>>> processFile(String filePath) {
+        Map<String, Optional<List<CustomData>>> dataMap = new HashMap<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(";");
+                String host = parts[0];
+                String ruleId = parts[1].split("_")[3];
+                String message = parts[5];
+                String timeStamp = parts[3];
+
+                Optional<List<CustomData>> customDataList = dataMap.computeIfAbsent(host, k -> Optional.of(new ArrayList<>()));
+                
+                if ("TCPConnectivity".equals(parts[1].split("_")[0])) {
+                    CustomData customData = new CustomData();
+                    customData.setRuleId(ruleId);
+                    customData.setMessage(message);
+                    customData.setTimeStamp(timeStamp);
+
+                    customDataList.ifPresent(list -> list.add(customData));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return dataMap;
+    }
+}
+
+This code snippet handles the case where a host doesn't initially have a "TCPConnectivity" entry but later gets one. It adds an Optional<List<CustomData>> entry for each host, and if a "TCPConnectivity" entry is encountered, it adds the CustomData instance to the list within the Optional. If no "TCPConnectivity" entry is encountered, the host will have an entry of Optional.empty().
+
