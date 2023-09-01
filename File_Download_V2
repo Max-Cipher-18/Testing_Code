@@ -287,4 +287,49 @@ public class FileCopyService {
     }
 }
 
-In this code, the createUniqueDownloadFolder method generates a unique folder name based on the remote host and current timestamp. The folder is created within a "downloads" directory in the user's home directory. Each downloaded file will be placed in its own folder within this "downloads" directory. This approach ensures a clean separation of downloaded files and helps avoid potential conflicts.
+In this code, the createUniqueDownloadFolder method generates a unique folder name based on the remote host and current timestamp. 
+The folder is created within a "downloads" directory in the user's home directory. 
+Each downloaded file will be placed in its own folder within this "downloads" directory. 
+This approach ensures a clean separation of downloaded files and helps avoid potential conflicts.
+
+=============================Download Folder Path from YAML=======================
+Create a YAML Configuration File:
+Create a file named application.yml in your src/main/resources directory to define your constants and configuration values:
+# Kerberos authentication details
+kerberos:
+  principal: your-principal
+  kinitCommand: kinit -kt /path/to/keytab
+
+# SCP command
+scp:
+  command: scp
+
+# Download folder configuration
+download:
+  baseFolder: ${user.home}/downloads
+
+
+FileCopyService.java
+@Service
+public class FileCopyService {
+
+    @Value("${" + AppConstants.DOWNLOAD_BASE_FOLDER + "}")
+    private String downloadBaseFolder;
+
+    // ... (other methods)
+
+    private String createUniqueDownloadFolder(String remoteHost) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String folderName = remoteHost + "_" + timestamp;
+
+        String downloadFolderPath = downloadBaseFolder + "/" + folderName;
+
+        File folder = new File(downloadFolderPath);
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        return downloadFolderPath;
+    }
+}
+
