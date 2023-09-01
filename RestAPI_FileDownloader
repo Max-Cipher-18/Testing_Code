@@ -43,3 +43,43 @@ This endpoint will trigger the file copying process and return a message indicat
 You can check the logs or implement additional logging to capture details about the file copy process.
 
 Remember to customize the endpoint and parameters to match your specific use case and application configuration.
+
+
+===========================================================
+import java.util.concurrent.TimeUnit;
+
+// ...
+
+try {
+    // Authenticate using Kerberos (kinit)
+    ProcessBuilder kinitProcessBuilder = new ProcessBuilder();
+    kinitProcessBuilder.command("bash", "-c", "kinit -kt /path/to/keytab");
+    Process kinitProcess = kinitProcessBuilder.start();
+
+    // Set a timeout in seconds (e.g., 10 seconds)
+    int timeoutInSeconds = 10;
+
+    // Wait for the process to complete, respecting the timeout
+    if (!kinitProcess.waitFor(timeoutInSeconds, TimeUnit.SECONDS)) {
+        // The process did not complete within the timeout
+        // Handle the timeout scenario here
+        model.addAttribute("errorMessage", "Authentication process timed out.");
+        return "copy-error"; // This should correspond to an HTML template
+    }
+
+    int kinitExitCode = kinitProcess.exitValue();
+    if (kinitExitCode != 0) {
+        // Handle kinit failure scenario
+        model.addAttribute("errorMessage", "Authentication process failed.");
+        return "copy-error"; // This should correspond to an HTML template
+    }
+
+    // The kinit process completed successfully
+    // Continue with the SCP command and other steps
+    // ...
+} catch (Exception e) {
+    e.printStackTrace();
+    model.addAttribute("errorMessage", "An error occurred.");
+    return "copy-error"; // This should correspond to an HTML template
+}
+
