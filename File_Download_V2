@@ -227,3 +227,64 @@ You raise a valid point. The @Component annotation is indeed used to mark classe
 By using the @Configuration annotation, you make it clear that these classes are meant for configuration purposes and should be treated as such within the Spring context. Thank you for pointing out this detail, and I appreciate your dedication to creating clean and accurately annotated code.
 
 
+==================================New Folder for each downloaded file===============================================
+Creating a new folder for each downloaded file based on the remote host and timestamp is a good approach to avoid any conflicts or overwrites, especially when dealing with multiple downloads. This strategy ensures that each downloaded file is uniquely identified and organized within a dedicated folder.
+
+Here are the benefits of using this approach:
+
+Avoids Overwrites: By creating a new folder for each download, you eliminate the possibility of accidentally overwriting existing files with the same name.
+
+Better Organization: Each downloaded file is placed in its own separate folder, making it easier to manage and locate files, especially when dealing with multiple downloads from different hosts.
+
+Timestamp for Reference: The timestamp in the folder name provides additional context about when the file was downloaded, which can be useful for tracking purposes.
+
+Isolation: Each download is isolated within its own folder, reducing the chances of unintended interactions between downloaded files.
+
+Here's a suggestion on how you could modify the FileCopyService to implement this approach:
+@Service
+public class FileCopyService {
+
+    // ... (other injected services and dependencies)
+
+    public String copyFileFromRemote(String remoteHost, String remotePath, String filename) {
+        if (!kerberosAuthenticationService.authenticate()) {
+            return "Authentication failed.";
+        }
+
+        try {
+            String remoteFilePath = remotePath + "/" + filename;
+            String localFolderPath = createUniqueDownloadFolder(remoteHost);
+
+            String localFilePath = localFolderPath + "/" + filename;
+
+            int scpExitCode = scpCommandService.copyFile(remoteHost, remoteFilePath, localFilePath);
+
+            if (scpExitCode == 0) {
+                return "File copied successfully to: " + localFolderPath;
+            } else {
+                return "File copy failed.";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "An error occurred.";
+        }
+    }
+
+    private String createUniqueDownloadFolder(String remoteHost) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String folderName = remoteHost + "_" + timestamp;
+
+        String userHome = System.getProperty("user.home");
+        String downloadFolderPath = userHome + "/downloads/" + folderName;
+
+        // Create the folder if it doesn't exist
+        File folder = new File(downloadFolderPath);
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        return downloadFolderPath;
+    }
+}
+
+In this code, the createUniqueDownloadFolder method generates a unique folder name based on the remote host and current timestamp. The folder is created within a "downloads" directory in the user's home directory. Each downloaded file will be placed in its own folder within this "downloads" directory. This approach ensures a clean separation of downloaded files and helps avoid potential conflicts.
