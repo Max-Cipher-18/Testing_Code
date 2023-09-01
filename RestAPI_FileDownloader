@@ -1,0 +1,45 @@
+Create a Controller Class:
+Create a new controller class to define the REST endpoint. This class will handle incoming HTTP requests.
+
+FileCopyController.java
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/filecopy")
+public class FileCopyController {
+
+    private final MainApplicationService mainApplicationService;
+
+    @Autowired
+    public FileCopyController(MainApplicationService mainApplicationService) {
+        this.mainApplicationService = mainApplicationService;
+    }
+
+    @GetMapping("/copy")
+    public String copyFile(@RequestParam String remoteHost,
+                           @RequestParam String remotePath,
+                           @RequestParam String filename,
+                           @RequestParam String localPath) {
+        mainApplicationService.initiateFileCopy(remoteHost, remotePath, filename, localPath);
+        return "File copy process initiated. Check logs for details.";
+    }
+}
+
+In this code, we've created an endpoint at /api/filecopy/copy that accepts parameters for remoteHost, remotePath, filename, and localPath. It then invokes the initiateFileCopy method from your MainApplicationService to initiate the file copying process.
+
+Configuration (if not already done):
+Ensure that your Spring Boot application is configured with the appropriate packages to scan for components, including the @RestController and other annotated classes.
+
+Test the Endpoint:
+You can now start your Spring Boot application and test the endpoint using a tool like Postman or by sending GET requests using a web browser or command-line tools like curl.
+
+Example request:
+GET http://localhost:8080/api/filecopy/copy?remoteHost=your-remote-host&remotePath=/path/on/remote&filename=example.txt&localPath=/path/on/local
+This endpoint will trigger the file copying process and return a message indicating that the process has been initiated. 
+You can check the logs or implement additional logging to capture details about the file copy process.
+
+Remember to customize the endpoint and parameters to match your specific use case and application configuration.
