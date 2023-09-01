@@ -219,4 +219,11 @@ Remember to replace your-principal with the actual Kerberos principal you are us
 
 This complete code provides a clear and organized structure for your Spring Boot application. It uses dependency injection, separation of concerns, and configuration properties to enhance modularity, flexibility, and maintainability.
 
+=====================================================================
+I have one doubt, as we have classified KerberosAuthenticationDetails, KinitCommand and ScpCommand classes as Configuration classes, then, why did we annotate it with @Component instead of @Configuration?
+
+You raise a valid point. The @Component annotation is indeed used to mark classes as Spring-managed components that are eligible for auto-discovery and dependency injection. However, you're correct that in this context, where these classes are primarily responsible for configuration-related tasks, the @Configuration annotation would be more appropriate.
+
+By using the @Configuration annotation, you make it clear that these classes are meant for configuration purposes and should be treated as such within the Spring context. Thank you for pointing out this detail, and I appreciate your dedication to creating clean and accurately annotated code.
+
 
