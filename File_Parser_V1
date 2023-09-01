@@ -1,0 +1,120 @@
+Step 1: Create Spring Boot Project
+
+Create a Spring Boot project using Spring Initializr or your preferred IDE. Include the necessary dependencies such as Spring Boot Web, Spring Boot DevTools, and Spring Boot Test for testing.
+
+Step 2: Project Structure
+
+Organize the project into packages for different components: controller, service, model, repository, and config. This separation promotes modularity and readability.
+
+com.example.filetransfer
+|-- config
+|-- controller
+|-- model
+|-- repository
+|-- service
+`-- FileTransferApplication.java
+
+Step 3: Model
+
+Create the CustomData class in the model package.
+package com.example.filetransfer.model;
+
+public class TCPConnectivityDataObject {
+    private String ruleId;
+    private String message;
+    private String timeStamp;
+
+    // Constructors, getters, setters
+}
+
+
+Step 4: Service
+
+Create the FileTransferService in the service package. This service will handle the file processing logic.
+package com.example.filetransfer.service;
+
+import com.example.filetransfer.model.CustomData;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public interface FileTransferService {
+    Map<String, Optional<List<CustomData>>> processFile(String filePath) throws IOException;
+}
+
+
+Create the implementation of the service:
+package com.example.filetransfer.service;
+
+import com.example.filetransfer.model.TCPConnectivityDataObject;
+import org.springframework.stereotype.Service;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
+
+@Service
+public class FileTransferServiceImpl implements FileTransferService {
+
+    @Override
+    public Map<String, Optional<List<TCPConnectivityDataObject>>> processFile(String filePath) throws IOException {
+        Map<String, Optional<List<TCPConnectivityDataObject>>> dataMap = new HashMap<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(";");
+                String host = parts[0];
+                String ruleId = parts[1].split("_")[3];
+                String message = parts[5];
+                String timeStamp = parts[3];
+
+                Optional<List<TCPConnectivityDataObject>> dataObjectList = dataMap.computeIfAbsent(host, k -> Optional.of(new ArrayList<>()));
+
+                if ("TCPConnectivity".equals(parts[1].split("_")[0])) {
+                    TCPConnectivityDataObject dataObject = new TCPConnectivityDataObject();
+                    dataObject.setRuleId(ruleId);
+                    dataObject.setMessage(message);
+                    dataObject.setTimeStamp(timeStamp);
+
+                    dataObjectList.ifPresent(list -> list.add(dataObject));
+                }
+            }
+        }
+
+        return dataMap;
+    }
+}
+
+Step 5: Application Configuration
+
+Create a configuration class in the config package to configure any required beans.
+package com.example.filetransfer.config;
+
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class FileTransferConfig {
+    // Configure any beans or settings if needed
+}
+
+Step 6: Application Entry Point
+
+Create the main application class:
+package com.example.filetransfer;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class FileTransferApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(FileTransferApplication.class, args);
+    }
+}
+
+
