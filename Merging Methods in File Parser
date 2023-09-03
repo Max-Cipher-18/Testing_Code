@@ -34,3 +34,147 @@ private void processLine(String line, Map<String, Optional<List<TCPConnectivityD
 }
 
 
+======================Updated Test Class==================
+package com.example.filetransfer.service;
+
+import com.example.filetransfer.model.TCPConnectivityData;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.*;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+public class NssimStateFileParserServiceTest {
+
+    @Mock
+    private NssimStateFileParserService service;
+
+    private static final String VALID_PATH = "valid-file-path";
+    private static final String INVALID_PATH = "invalid-file-path";
+    private static final String VALID_INPUT = "line1\nline2\nline3";
+
+    @BeforeEach
+    public void setUp() {
+        service = Mockito.spy(new NssimStateFileParserService());
+    }
+
+    @AfterEach
+    public void tearDown() {
+        Mockito.reset(service);
+    }
+
+    @Test
+    public void testIsValidFilePath_WithValidPath_ShouldReturnTrue() {
+        when(service.isValidFilePath(any())).thenReturn(true);
+
+        assertTrue(service.isValidFilePath("valid-file-path"));
+    }
+
+    @Test
+    public void testIsValidFilePath_WithInvalidPath_ShouldReturnFalse() {
+        when(service.isValidFilePath(any())).thenReturn(false);
+
+        assertFalse(service.isValidFilePath("invalid-file-path"));
+    }
+
+    @Test
+    public void testProcessFile_WithValidInput_ShouldProcessData() throws IOException {
+        String validInput = "host1;TCPConnectivity_123;data;100\n" +
+                "host2;SomeOtherEntry;data;200\n" +
+                "host1;TCPConnectivity_456;data;300\n";
+        BufferedReader reader = new BufferedReader(new StringReader(validInput));
+
+        // Mock the behavior of isValidFilePath
+        when(service.isValidFilePath(any())).thenReturn(true);
+
+        // Mock the behavior of the readFileAndProcess method to return nothing
+        when(service.readFileAndProcess(any(), any())).thenAnswer(invocation -> {
+            Object[] args = invocation.getArguments();
+            BufferedReader inputReader = (BufferedReader) args[0];
+            Map<String, Optional<List<TCPConnectivityData>>> dataMap = (Map<String, Optional<List<TCPConnectivityData>>>) args[1];
+
+            String line;
+            while ((line = inputReader.readLine()) != null) {
+                service.processLine(line, dataMap);
+            }
+            return null;
+        });
+
+        Map<String, Optional<List<TCPConnectivityData>>> result = service.processFile("test-file-path");
+
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey("host1"));
+        assertTrue(result.containsKey("host2"));
+
+        Optional<List<TCPConnectivityData>> host1Data = result.get("host1");
+        Optional<List<TCPConnectivityData>> host2Data = result.get("host2");
+
+        assertTrue(host1Data.isPresent());
+        assertFalse(host2Data.isPresent());
+
+        List<TCPConnectivityData> host1DataList = host1Data.get();
+        assertEquals(2, host1DataList.size());
+        assertEquals("123", host1DataList.get(0).getRuleId());
+        assertEquals("456", host1DataList.get(1).getRuleId());
+    }
+
+    @Test
+    public void testProcessFile_WithNoTCPConnectivity_ShouldStoreEmptyOptional() throws IOException {
+        // Input with a host that doesn't have a TCPConnectivity entry
+        String input = "host1;SomeOtherEntry;data;100\n" +
+                "host2;AnotherEntry;data;200\n";
+        BufferedReader reader = new BufferedReader(new StringReader(input));
+
+        // Mock the behavior of isValidFilePath
+        when(service.isValidFilePath(any())).thenReturn(true);
+
+        // Mock the behavior of the readFileAndProcess method to return nothing
+        when(service.readFileAndProcess(any(), any())).thenAnswer(invocation -> {
+            Object[] args = invocation.getArguments();
+            BufferedReader inputReader = (BufferedReader) args[0];
+            Map<String, Optional<List<TCPConnectivityData>>> dataMap = (Map<String, Optional<List<TCPConnectivityData>>>) args[1];
+
+            String line;
+            while ((line = inputReader.readLine()) != null) {
+                service.processLine(line, dataMap);
+            }
+            return null;
+        });
+
+        Map<String, Optional<List<TCPConnectivityData>>> result = service.processFile("test-file-path");
+
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey("host1"));
+        assertTrue(result.containsKey("host2"));
+
+        Optional<List<TCPConnectivityData>> host1Data = result.get("host1");
+        Optional<List<TCPConnectivityData>> host2Data = result.get("host2");
+
+        assertFalse(host1Data.isPresent());
+        assertFalse(host2Data.isPresent());
+    }
+
+    @Test
+    public void testProcessFile_WithEmptyFile_ShouldReturnEmptyMap() throws IOException {
+        // Input with an empty file
+        String emptyFileInput = "";
+
+        // Mock the behavior of isValidFilePath
+        when(service.isValidFilePath(any())).thenReturn(true);
+
+        // Mock the behavior of the readFileAndProcess method to return nothing
+        when(service.readFileAndProcess(any(), any())).thenAnswer(invocation -> {
+            Object[] args = invocation.getArguments();
+            BufferedReader inputReader = (BufferedReader) args[0];
+            Map<String, Optional<List<TCPConnectivityData>>>
+
