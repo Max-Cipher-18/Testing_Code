@@ -176,5 +176,17 @@ public class NssimStateFileParserServiceTest {
         when(service.readFileAndProcess(any(), any())).thenAnswer(invocation -> {
             Object[] args = invocation.getArguments();
             BufferedReader inputReader = (BufferedReader) args[0];
-            Map<String, Optional<List<TCPConnectivityData>>>
+            Map<String, Optional<List<TCPConnectivityData>>> dataMap = (Map<String, Optional<List<TCPConnectivityData>>>) args[1];
 
+            String line;
+            while ((line = inputReader.readLine()) != null) {
+                service.processLine(line, dataMap);
+            }
+            return null;
+        });
+
+        Map<String, Optional<List<TCPConnectivityData>>> result = service.processFile("test-file-path");
+
+        assertTrue(result.isEmpty());
+    }
+}
