@@ -1,0 +1,182 @@
+package com.example.filedeleteservice.service;
+
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@Service
+public class FileDeleteService {
+
+    public void deleteFileAndFolder(String folderPath, String filename) throws IOException {
+        Path filePath = Paths.get(folderPath, filename);
+
+        if (Files.exists(filePath)) {
+            Files.delete(filePath);
+
+            Path folderPathObj = Paths.get(folderPath);
+            try {
+                Files.delete(folderPathObj);
+            } catch (DirectoryNotEmptyException e) {
+                // Folder is not empty; you may choose to handle this differently.
+            }
+        } else {
+            throw new FileNotFoundException("File not found.");
+        }
+    }
+}
+
+package com.example.filedeleteservice.exception;
+
+public class FileNotFoundException extends RuntimeException {
+
+    public FileNotFoundException(String message) {
+        super(message);
+    }
+}
+
+
+To use the FileDeleteService within your application, you can simply inject it into your other Spring components (e.g., other services, controllers, or components) where you need to delete files and folders.
+
+package com.example.myapplication;
+
+import com.example.filedeleteservice.service.FileDeleteService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class MyApplicationService {
+
+    private final FileDeleteService fileDeleteService;
+
+    @Autowired
+    public MyApplicationService(FileDeleteService fileDeleteService) {
+        this.fileDeleteService = fileDeleteService;
+    }
+
+    public void deleteFileAndFolderInMyApplication(String folderPath, String filename) {
+        try {
+            fileDeleteService.deleteFileAndFolder(folderPath, filename);
+            // Handle success or other application-specific logic here.
+        } catch (FileNotFoundException e) {
+            // Handle file not found error.
+        } catch (IOException e) {
+            // Handle other IO-related errors.
+        }
+    }
+}
+
+========================TEST CASE CLASS==============================================
+Now, let's write the unit tests for the FileDeleteService:
+
+package com.example.filedeleteservice.service;
+
+import com.example.filedeleteservice.exception.FileNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class FileDeleteServiceTest {
+
+    @Mock
+    private Files files;
+
+    @InjectMocks
+    private FileDeleteService fileDeleteService;
+
+    private static final String folderPath = "/testFolder";
+    private static final String filename = "testFile.txt";
+
+    @BeforeEach
+    public void setUp() {
+        // Mock static method Files.delete()
+        mockStatic(Files.class);
+    }
+
+    @Test
+    public void testDeleteFileAndFolder_Success() throws IOException {
+        // Arrange
+        Path filePath = Paths.get(folderPath, filename);
+        Path folderPathObj = Paths.get(folderPath);
+
+        doNothing().when(Files.class);
+        Files.delete(filePath);
+        doNothing().when(Files.class);
+        Files.delete(folderPathObj);
+
+        // Act
+        fileDeleteService.deleteFileAndFolder(folderPath, filename);
+
+        // Assert
+        verifyStatic(Files.class, times(1));
+        Files.delete(filePath);
+        verifyStatic(Files.class, times(1));
+        Files.delete(folderPathObj);
+    }
+
+    @Test
+    public void testDeleteFileAndFolder_FileNotFound() throws IOException {
+        // Arrange
+        Path filePath = Paths.get(folderPath, filename);
+
+        doThrow(new FileNotFoundException("File not found.")).when(Files.class);
+        Files.delete(filePath);
+
+        // Act & Assert
+        assertThrows(FileNotFoundException.class, () -> fileDeleteService.deleteFileAndFolder(folderPath, filename));
+    }
+
+    @Test
+    public void testDeleteFileAndFolder_IOError() throws IOException {
+        // Arrange
+        Path filePath = Paths.get(folderPath, filename);
+        Path folderPathObj = Paths.get(folderPath);
+
+        doThrow(new IOException("IO error.")).when(Files.class);
+        Files.delete(filePath);
+        doNothing().when(Files.class);
+        Files.delete(folderPathObj);
+
+        // Act & Assert
+        assertThrows(IOException.class, () -> fileDeleteService.deleteFileAndFolder(folderPath, filename));
+    }
+
+    @Test
+    public void testDeleteFileAndFolder_FolderNotEmpty() throws IOException {
+        // Arrange
+        Path filePath = Paths.get(folderPath, filename);
+        Path folderPathObj = Paths.get(folderPath);
+
+        doNothing().when(Files.class);
+        Files.delete(filePath);
+        doThrow(new DirectoryNotEmptyException("Folder not empty.")).when(Files.class);
+        Files.delete(folderPathObj);
+
+        // Act & Assert
+        assertThrows(DirectoryNotEmptyException.class, () -> fileDeleteService.deleteFileAndFolder(folderPath, filename));
+    }
+}
+
+No, in the provided test cases, we are not actually performing the delete file and folder operations. Instead, we are using Mockito to mock the static methods of the Files class, simulating the behavior of these methods without performing real file operations. This is a common practice in unit testing, where you want to isolate the code under test from external dependencies.
+
+In the tests:
+
+doNothing().when(Files.class) is used to mock the Files.delete method so that it doesn't actually delete files or folders when called.
+doThrow(...).when(Files.class) is used to mock the Files.delete method to throw exceptions with specific messages to simulate different scenarios, such as file not found, IO errors, or folder not empty situations.
+The purpose of these tests is to ensure that your FileDeleteService class behaves correctly when it encounters different conditions without actually affecting the file system. These tests help you verify that the service handles exceptions and error conditions appropriately.
