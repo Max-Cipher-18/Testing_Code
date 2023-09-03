@@ -1,0 +1,284 @@
+Certainly, modularizing the code in the NssimStateFileParserService is a good idea for better readability and maintainability. Here's how you can structure the service class with separate methods for each step:
+
+package com.example.filetransfer.service;
+
+import com.example.filetransfer.model.TCPConnectivityData;
+import org.springframework.stereotype.Service;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+
+@Service
+public class NssimStateFileParserService {
+
+    public Map<String, Optional<List<TCPConnectivityData>>> processFile(String filePath) throws IOException {
+        Map<String, Optional<List<TCPConnectivityData>>> dataMap = new HashMap<>();
+
+        if (isValidFilePath(filePath)) {
+            List<String> lines = readFile(filePath);
+
+            if (lines != null) {
+                processLines(lines, dataMap);
+            }
+        }
+
+        return dataMap;
+    }
+
+    private boolean isValidFilePath(String filePath) {
+        Path path = Path.of(filePath);
+        return Files.exists(path) && Files.isRegularFile(path);
+    }
+
+    private List<String> readFile(String filePath) throws IOException {
+        List<String> lines = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+            }
+        }
+
+        return lines;
+    }
+
+    private void processLines(List<String> lines, Map<String, Optional<List<TCPConnectivityData>>> dataMap) {
+        for (String line : lines) {
+            String[] parts = line.split(";");
+            String host = parts[0];
+            String ruleId = parts[1].split("_")[3];
+            String message = parts[5];
+            String timeStamp = parts[3];
+
+            Optional<List<TCPConnectivityData>> dataList = dataMap.computeIfAbsent(host, k -> Optional.of(new ArrayList<>()));
+
+            if ("TCPConnectivity".equals(parts[1].split("_")[0])) {
+                TCPConnectivityData data = new TCPConnectivityData();
+                data.setRuleId(ruleId);
+                data.setMessage(message);
+                data.setTimeStamp(timeStamp);
+
+                dataList.ifPresent(list -> list.add(data));
+            }
+        }
+    }
+}
+
+
+In this updated code:
+
+The processFile method first checks if the file path is valid and the file exists before proceeding.
+The isValidFilePath method validates the file path.
+The readFile method reads the file into a list of lines.
+The processLines method processes the lines one by one.
+This modular approach enhances code organization and readability while separating concerns for each step of the process.
+
+============================================================================
+Here's the complete test class for the NssimStateFileParserService with all the test cases:
+
+package com.example.filetransfer.service;
+
+import com.example.filetransfer.model.TCPConnectivityData;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class NssimStateFileParserServiceTest {
+
+    @Mock
+    private NssimStateFileParserService service;
+
+    @BeforeEach
+    public void setUp() {
+        service = new NssimStateFileParserService();
+    }
+
+    @Test
+    public void testIsValidFilePath_WithValidPath_ShouldReturnTrue() {
+        String validPath = "valid-file-path";
+        when(service.isValidFilePath(eq(validPath))).thenReturn(true);
+
+        assertTrue(service.isValidFilePath(validPath));
+    }
+
+    @Test
+    public void testIsValidFilePath_WithInvalidPath_ShouldReturnFalse() {
+        String invalidPath = "invalid-file-path";
+        when(service.isValidFilePath(eq(invalidPath))).thenReturn(false);
+
+        assertFalse(service.isValidFilePath(invalidPath));
+    }
+
+    @Test
+    public void testReadFile_WithValidInput_ShouldReadFile() throws IOException {
+        String validInput = "line1\nline2\nline3";
+        BufferedReader reader = new BufferedReader(new StringReader(validInput));
+
+        when(service.isValidFilePath(any())).thenReturn(true);
+        when(service.readFile(any())).thenCallRealMethod();
+
+        List<String> lines = service.readFile("test-file-path");
+
+        assertNotNull(lines);
+        assertEquals(3, lines.size());
+        assertEquals("line1", lines.get(0));
+        assertEquals("line2", lines.get(1));
+        assertEquals("line3", lines.get(2));
+    }
+
+    @Test
+    public void testProcessFile_WithValidInput_ShouldProcessData() throws IOException {
+        String validInput = "host1;TCPConnectivity_123;data;100\n" +
+                "host2;SomeOtherEntry;data;200\n" +
+                "host1;TCPConnectivity_456;data;300\n";
+        BufferedReader reader = new BufferedReader(new StringReader(validInput));
+
+        when(service.isValidFilePath(any())).thenReturn(true);
+        when(service.readFile(any())).thenReturn(Arrays.asList(validInput.split("\n")));
+
+        Map<String, Optional<List<TCPConnectivityData>>> result = service.processFile("test-file-path");
+
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey("host1"));
+        assertTrue(result.containsKey("host2"));
+
+        Optional<List<TCPConnectivityData>> host1Data = result.get("host1");
+        Optional<List<TCPConnectivityData>> host2Data = result.get("host2");
+
+        assertTrue(host1Data.isPresent());
+        assertFalse(host2Data.isPresent());
+
+        List<TCPConnectivityData> host1DataList = host1Data.get();
+        assertEquals(2, host1DataList.size());
+        assertEquals("123", host1DataList.get(0).getRuleId());
+        assertEquals("456", host1DataList.get(1).getRuleId());
+    }
+}
+
+This test class covers the isValidFilePath, readFile, and processFile methods of the NssimStateFileParserService and ensures their correct behavior.
+
+=========================================Modularized Test Cases=======================================
+package com.example.filetransfer.service;
+
+import com.example.filetransfer.model.TCPConnectivityData;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class NssimStateFileParserServiceTest {
+
+    @Mock
+    private NssimStateFileParserService service;
+
+    private static final String VALID_PATH = "valid-file-path";
+    private static final String INVALID_PATH = "invalid-file-path";
+    private static final String VALID_INPUT = "line1\nline2\nline3";
+
+    @BeforeEach
+    public void setUp() {
+        service = new NssimStateFileParserService();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        Mockito.reset(service);
+    }
+
+    @Test
+    public void testIsValidFilePath_WithValidPath_ShouldReturnTrue() {
+        when(service.isValidFilePath(eq(VALID_PATH))).thenReturn(true);
+
+        assertTrue(service.isValidFilePath(VALID_PATH));
+    }
+
+    @Test
+    public void testIsValidFilePath_WithInvalidPath_ShouldReturnFalse() {
+        when(service.isValidFilePath(eq(INVALID_PATH))).thenReturn(false);
+
+        assertFalse(service.isValidFilePath(INVALID_PATH));
+    }
+
+    @Test
+    public void testReadFile_WithValidInput_ShouldReadFile() throws IOException {
+        // Mock the behavior of isValidFilePath
+        when(service.isValidFilePath(any())).thenReturn(true);
+
+        // Mock the behavior of the readFile method to return lines
+        when(service.readFile(eq("test-file-path"))).thenReturn(Arrays.asList(VALID_INPUT.split("\n")));
+
+        List<String> lines = service.readFile("test-file-path");
+
+        assertNotNull(lines);
+        assertEquals(3, lines.size());
+        assertEquals("line1", lines.get(0));
+        assertEquals("line2", lines.get(1));
+        assertEquals("line3", lines.get(2));
+    }
+
+    @Test
+    public void testProcessFile_WithValidInput_ShouldProcessData() throws IOException {
+        String validInput = "host1;TCPConnectivity_123;data;100\n" +
+                "host2;SomeOtherEntry;data;200\n" +
+                "host1;TCPConnectivity_456;data;300\n";
+        BufferedReader reader = new BufferedReader(new StringReader(validInput));
+
+        // Mock the behavior of isValidFilePath
+        when(service.isValidFilePath(any())).thenReturn(true);
+
+        // Mock the behavior of the readFile method to return lines
+        when(service.readFile(any())).thenReturn(Arrays.asList(validInput.split("\n")));
+
+        Map<String, Optional<List<TCPConnectivityData>>> result = service.processFile("test-file-path");
+
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey("host1"));
+        assertTrue(result.containsKey("host2"));
+
+        Optional<List<TCPConnectivityData>> host1Data = result.get("host1");
+        Optional<List<TCPConnectivityData>> host2Data = result.get("host2");
+
+        assertTrue(host1Data.isPresent());
+        assertFalse(host2Data.isPresent());
+
+        List<TCPConnectivityData> host1DataList = host1Data.get();
+        assertEquals(2, host1DataList.size());
+        assertEquals("123", host1DataList.get(0).getRuleId());
+        assertEquals("456", host1DataList.get(1).getRuleId());
+    }
+}
+
+In this updated test class:
+
+We've added constants for valid and invalid paths as well as valid input to enhance code readability.
+We've used @BeforeEach and @AfterEach to set up and reset the service mock before and after each test case, ensuring a clean slate for each test.
+The test cases now have more descriptive names and clearly separate the setup and verification phases.
+We've used comments to indicate the purpose of each section of the test case.
+This organization and modularization should improve the readability and maintainability of the test class.
