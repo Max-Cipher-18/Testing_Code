@@ -1,0 +1,26 @@
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/file")
+public class FileDeleteController {
+
+    @Autowired
+    private FileDeleteService fileDeleteService;
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<String> deleteFileAndFolder(
+            @RequestParam String folderPath,
+            @RequestParam String filename) {
+        try {
+            fileDeleteService.deleteFileAndFolder(folderPath, filename);
+            return ResponseEntity.ok("File and folder deleted successfully.");
+        } catch (FileNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while processing the request.");
+        }
+    }
+}
