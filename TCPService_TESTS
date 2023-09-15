@@ -1,0 +1,283 @@
+Certainly! You can use the Given-When-Then style to structure your BDD-style test methods for better readability and clarity. Here's how you can rewrite the test using this style:
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+public class YourServiceTest {
+
+    @Mock
+    private Map<String, Map<String, TCPConnectivityModel>> connectivityMap;
+
+    private YourService yourService;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        yourService = new YourService();
+    }
+
+    @Test
+    public void givenUmmStatesAndConnectivityMap_whenProcessingUmmStates_thenExpectResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Add UmmState objects to ummStates
+
+        // Mock behavior for the connectivityMap
+        when(connectivityMap.containsKey(anyString())).thenReturn(true);
+        when(connectivityMap.get(anyString())).thenReturn(createInnerMap());
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isNotEmpty();
+
+        // Add more specific assertions as needed
+    }
+
+    private Map<String, TCPConnectivityModel> createInnerMap() {
+        Map<String, TCPConnectivityModel> innerMap = new HashMap<>();
+        // Add TCPConnectivityModel objects to innerMap
+        return innerMap;
+    }
+}
+
+In this rewritten test:
+
+The Given section represents the initial setup, where you define the input data and mock the behavior of dependencies.
+
+The When section is where you invoke the method under test.
+
+The Then section contains the assertions to verify the expected outcomes and results.
+
+Using the Given-When-Then style makes it even more explicit and readable, helping you express the intent of your test cases clearly. You can follow this structure for all your BDD-style test methods, making your tests more maintainable and easier to understand.
+
+==========================
+To enhance the testing of your service and aim for 100% code coverage, you'll need to write additional test cases that cover various scenarios and edge cases. Here are some test cases to consider:
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+public class YourServiceTest {
+
+    @Mock
+    private Map<String, Map<String, TCPConnectivityModel>> connectivityMap;
+
+    private YourService yourService;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        yourService = new YourService();
+    }
+
+    @Test
+    public void givenUmmStatesAndConnectivityMap_whenProcessingUmmStates_thenExpectResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Add UmmState objects to ummStates
+
+        // Mock behavior for the connectivityMap
+        when(connectivityMap.containsKey(anyString())).thenReturn(true);
+        when(connectivityMap.get(anyString())).thenReturn(createInnerMap());
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isNotEmpty();
+        // Add more specific assertions as needed
+    }
+
+    @Test
+    public void givenUmmStatesAndConnectivityMap_whenProcessingUmmStatesWithMissingInstanceId_thenExpectMissRuleResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Add UmmState objects to ummStates
+
+        // Mock behavior for the connectivityMap with missing instanceId
+        when(connectivityMap.containsKey(anyString())).thenReturn(true);
+        when(connectivityMap.get(anyString())).thenReturn(new HashMap<>());
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isNotEmpty();
+        // Ensure the results have MISS_RULE results
+        assertThat(results).allMatch(result -> result.getResult() == Result.MISS_RULE);
+    }
+
+    @Test
+    public void givenUmmStatesAndConnectivityMap_whenProcessingUmmStatesWithMissingHostName_thenExpectMissRuleResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Add UmmState objects to ummStates
+
+        // Mock behavior for the connectivityMap with missing hostName
+        when(connectivityMap.containsKey(anyString())).thenReturn(false);
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isNotEmpty();
+        // Ensure the results have MISS_RULE results
+        assertThat(results).allMatch(result -> result.getResult() == Result.MISS_RULE);
+    }
+
+    @Test
+    public void givenUmmStatesAndConnectivityMap_whenProcessingUmmStatesWithSuccessState_thenExpectSuccessResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Add UmmState objects to ummStates
+
+        // Mock behavior for the connectivityMap with success state
+        when(connectivityMap.containsKey(anyString())).thenReturn(true);
+        when(connectivityMap.get(anyString())).thenReturn(createInnerMapWithSuccessState());
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isNotEmpty();
+        // Ensure the results have SUCCESS results
+        assertThat(results).allMatch(result -> result.getResult() == Result.SUCCESS);
+    }
+
+    private Map<String, TCPConnectivityModel> createInnerMap() {
+        Map<String, TCPConnectivityModel> innerMap = new HashMap<>();
+        // Add TCPConnectivityModel objects to innerMap
+        return innerMap;
+    }
+
+    private Map<String, TCPConnectivityModel> createInnerMapWithSuccessState() {
+        Map<String, TCPConnectivityModel> innerMap = new HashMap<>();
+        // Add TCPConnectivityModel objects with success state to innerMap
+        return innerMap;
+    }
+}
+In these test cases:
+
+givenUmmStatesAndConnectivityMap_whenProcessingUmmStatesWithMissingInstanceId_thenExpectMissRuleResults tests the scenario where the instanceId is missing in the inner map, which should result in MISS_RULE results.
+
+givenUmmStatesAndConnectivityMap_whenProcessingUmmStatesWithMissingHostName_thenExpectMissRuleResults tests the scenario where the hostName is missing in the outer map, which should result in MISS_RULE results.
+
+givenUmmStatesAndConnectivityMap_whenProcessingUmmStatesWithSuccessState_thenExpectSuccessResults tests the scenario where the state is 0, which should result in SUCCESS results.
+
+These test cases cover additional scenarios and edge cases to help achieve higher code coverage for your service. You can continue to add more test cases to cover other conditions and requirements specific to your service.
+
+=====================================
+
+
+In these test cases:
+
+givenEmptyUmmStatesAndNonEmptyConnectivityMap_whenProcessingUmmStates_thenExpectNoResults tests the scenario when ummStates is empty, but the connectivityMap is non-empty. In this case, no results are expected.
+
+givenNullUmmStatesAndNonEmptyConnectivityMap_whenProcessingUmmStates_thenExpectNoResults tests the scenario when ummStates is null, but the connectivityMap is non-empty. Again, no results are expected.
+
+givenUmmStatesAndEmptyConnectivityMap_whenProcessingUmmStates_thenExpectNoResults tests when connectivityMap is empty, but ummStates are provided. Still, no results are expected.
+
+givenUmmStatesAndNullConnectivityMap_whenProcessingUmmStates_thenExpectNoResults tests when connectivityMap is null, and ummStates are provided. As before, no results are expected.
+
+Certainly! Let's implement the first four test cases:
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+public class YourServiceTest {
+
+    @Mock
+    private Map<String, Map<String, TCPConnectivityModel>> connectivityMap;
+
+    private YourService yourService;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        yourService = new YourService();
+    }
+
+    @Test
+    public void givenEmptyUmmStatesAndNonEmptyConnectivityMap_whenProcessingUmmStates_thenExpectNoResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Leave ummStates empty
+        // Mock behavior for the connectivityMap
+        when(connectivityMap.containsKey(anyString())).thenReturn(true);
+        when(connectivityMap.get(anyString())).thenReturn(createInnerMap());
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    public void givenNullUmmStatesAndNonEmptyConnectivityMap_whenProcessingUmmStates_thenExpectNoResults() {
+        // Given
+        List<UmmState> ummStates = null;
+        // Mock behavior for the connectivityMap
+        when(connectivityMap.containsKey(anyString())).thenReturn(true);
+        when(connectivityMap.get(anyString())).thenReturn(createInnerMap());
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    public void givenUmmStatesAndEmptyConnectivityMap_whenProcessingUmmStates_thenExpectNoResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Add UmmState objects to ummStates
+        // Mock behavior for the connectivityMap as empty
+        when(connectivityMap.isEmpty()).thenReturn(true);
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    public void givenUmmStatesAndNullConnectivityMap_whenProcessingUmmStates_thenExpectNoResults() {
+        // Given
+        List<UmmState> ummStates = new ArrayList<>();
+        // Add UmmState objects to ummStates
+        // Set connectivityMap to null
+        connectivityMap = null;
+
+        // When
+        Set<TCPConnectivityResult> results = yourService.processUmmStates(ummStates, connectivityMap);
+
+        // Then
+        assertThat(results).isEmpty();
+    }
+
+    // Helper methods and other tests...
+}
+
