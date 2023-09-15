@@ -1,0 +1,92 @@
+What do you about making the result field as enum. As we have fixed constants for all conditions. 
+
+Using an enum for the result field is a good practice because it provides a clear and type-safe way to represent fixed constants for different conditions. It also makes the code more maintainable and less error-prone, as you won't have to work with raw strings.
+
+Here's how you can define an enum for the result field and modify the code to use it:
+
+Define the Result enum:
+public enum Result {
+    SUCCESS,
+    FAILURE,
+    MISS_MODULE,
+    MISS_OTHER,
+    MISS_RULE // Add the MISS_RULE constant here
+}
+
+Modify the TCPConnectivityResult class to use the Result enum:
+
+public class TCPConnectivityResult {
+    private String sourceHost;
+    private String destinationHost;
+    private String destinationPort;
+    private Result result;
+
+    public TCPConnectivityResult(String sourceHost, String destinationHost, String destinationPort, Result result) {
+        this.sourceHost = sourceHost;
+        this.destinationHost = destinationHost;
+        this.destinationPort = destinationPort;
+        this.result = result;
+    }
+
+    // Getters and setters (if needed)
+}
+
+Update the getResult method to return the Result enum:
+private Result getResult(TCPConnectivityModel connectivityModel) {
+    int state = Integer.parseInt(connectivityModel.getState());
+    String message = connectivityModel.getMessage();
+
+    if (state == 0) {
+        return Result.SUCCESS;
+    } else if (state > 0 && message.contains("No connectivity")) {
+        return Result.FAILURE;
+    } else if (state > 0 && message.contains("Executable not found")) {
+        return Result.MISS_MODULE;
+    } else {
+        return Result.MISS_OTHER;
+    }
+}
+
+Modify the processUmmStates method to use the Result enum when creating TCPConnectivityResult objects:
+public Set<TCPConnectivityResult> processUmmStates(List<UmmState> ummStates, Map<String, Map<String, TCPConnectivityModel>> connectivityMap) {
+    Set<TCPConnectivityResult> results = new HashSet<>();
+
+    for (UmmState ummState : ummStates) {
+        String hostName = ummState.getHostName();
+        String instanceId = ummState.getInstanceId();
+
+        // Check if hostName exists as a key in the outer map
+        if (connectivityMap.containsKey(hostName)) {
+            Map<String, TCPConnectivityModel> innerMap = connectivityMap.get(hostName);
+
+            // Check if instanceId exists as a key in the inner map
+            if (innerMap.containsKey(instanceId)) {
+                TCPConnectivityModel connectivityModel = innerMap.get(instanceId);
+                String sourceHost = hostName;
+                String destinationHost = ummState.getPayload(); // Assuming payload is the destinationHost
+                String destinationPort = ummState.getPayload(); // Assuming payload is the destinationPort
+                Result result = getResult(connectivityModel);
+
+                // Create a TCPConnectivityResult object and add it to the set
+                TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+                results.add(resultObject);
+            }
+        } else {
+            // If hostName doesn't exist as a key, create a result with "MISS_RULE"
+            String sourceHost = hostName; // Use the provided hostName
+            String destinationHost = ummState.getPayload(); // Assuming payload is the destinationHost
+            String destinationPort = ummState.getPayload(); // Assuming payload is the destinationPort
+            Result result = Result.MISS_RULE;
+
+            // Create a TCPConnectivityResult object and add it to the set
+            TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+            results.add(resultObject);
+        }
+    }
+
+    return results;
+}
+
+With this modification, you have a clear and type-safe way to represent and work with the result conditions using the Result enum, improving code readability and maintainability.
+
+
