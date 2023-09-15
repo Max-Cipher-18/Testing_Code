@@ -148,3 +148,139 @@ We create a TCPConnectivityResult object and add it to the results set.
 Finally, we return the set of TCPConnectivityResult objects.
 This code ensures that the TCPConnectivityResult objects are created and populated with the appropriate values based on your conditions and added to the set for further processing or storage.
 
+
+==================================================================
+If ihostName doesn't exists as a key in the outer map, then also we need to create the TCPConnectivityResult object and add to the Set. 
+However, the result field in this case, would store "MISS_RULE" as value.
+
+REPLY:
+If you need to create a TCPConnectivityResult object and add it to the Set even when hostName doesn't exist as a key in the outer map, with the result field set to "MISS_RULE," you can modify the code as follows:
+import java.util.*;
+
+public class YourService {
+
+    public Set<TCPConnectivityResult> processUmmStates(List<UmmState> ummStates, Map<String, Map<String, TCPConnectivityModel>> connectivityMap) {
+        Set<TCPConnectivityResult> results = new HashSet<>();
+
+        for (UmmState ummState : ummStates) {
+            String hostName = ummState.getHostName();
+            String instanceId = ummState.getInstanceId();
+
+            // Check if hostName exists as a key in the outer map
+            if (connectivityMap.containsKey(hostName)) {
+                Map<String, TCPConnectivityModel> innerMap = connectivityMap.get(hostName);
+
+                // Check if instanceId exists as a key in the inner map
+                if (innerMap.containsKey(instanceId)) {
+                    TCPConnectivityModel connectivityModel = innerMap.get(instanceId);
+                    String sourceHost = hostName;
+                    String destinationHost = ummState.getPayload(); // Assuming payload is the destinationHost
+                    String destinationPort = ummState.getPayload(); // Assuming payload is the destinationPort
+                    String result = getResult(connectivityModel);
+
+                    // Create a TCPConnectivityResult object and add it to the set
+                    TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+                    results.add(resultObject);
+                }
+            } else {
+                // If hostName doesn't exist as a key, create a result with "MISS_RULE"
+                String sourceHost = hostName; // Use the provided hostName
+                String destinationHost = ummState.getPayload(); // Assuming payload is the destinationHost
+                String destinationPort = ummState.getPayload(); // Assuming payload is the destinationPort
+                String result = "MISS_RULE";
+
+                // Create a TCPConnectivityResult object and add it to the set
+                TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+                results.add(resultObject);
+            }
+        }
+
+        return results;
+    }
+
+    private String getResult(TCPConnectivityModel connectivityModel) {
+        int state = Integer.parseInt(connectivityModel.getState());
+        String message = connectivityModel.getMessage();
+
+        if (state == 0) {
+            return "SUCCESS";
+        } else if (state > 0 && message.contains("No connectivity")) {
+            return "FAILURE";
+        } else if (state > 0 && message.contains("Executable not found")) {
+            return "MISS_MODULE";
+        } else {
+            return "UNKNOWN"; // Add a default value or handle other cases as needed
+        }
+    }
+}
+
+In this code, after checking if hostName exists as a key in the outer map, we add a conditional check for the case when hostName doesn't exist. If it doesn't exist, we create a TCPConnectivityResult object with "MISS_RULE" as the result and add it to the set. This ensures that a result is added to the set even when hostName is not found in the outer map.
+
+=============================================
+One more thing, I would like to add. 
+There's one more condition that I want to handle, where the state value is greater than 0, but the message field does not contains "No connectivity" as well as it doesn't contain "Executable not found". In that case, we want to store result value as "MISS_OTHER".
+
+REPLY:
+Certainly, to handle the case where the state value is greater than 0 but the message field doesn't contain "No connectivity" or "Executable not found," you can add an additional condition in the getResult method to set the result value to "MISS_OTHER." Here's the modified code to include this condition:
+
+import java.util.*;
+
+public class YourService {
+
+    public Set<TCPConnectivityResult> processUmmStates(List<UmmState> ummStates, Map<String, Map<String, TCPConnectivityModel>> connectivityMap) {
+        Set<TCPConnectivityResult> results = new HashSet<>();
+
+        for (UmmState ummState : ummStates) {
+            String hostName = ummState.getHostName();
+            String instanceId = ummState.getInstanceId();
+
+            // Check if hostName exists as a key in the outer map
+            if (connectivityMap.containsKey(hostName)) {
+                Map<String, TCPConnectivityModel> innerMap = connectivityMap.get(hostName);
+
+                // Check if instanceId exists as a key in the inner map
+                if (innerMap.containsKey(instanceId)) {
+                    TCPConnectivityModel connectivityModel = innerMap.get(instanceId);
+                    String sourceHost = hostName;
+                    String destinationHost = ummState.getPayload(); // Assuming payload is the destinationHost
+                    String destinationPort = ummState.getPayload(); // Assuming payload is the destinationPort
+                    String result = getResult(connectivityModel);
+
+                    // Create a TCPConnectivityResult object and add it to the set
+                    TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+                    results.add(resultObject);
+                }
+            } else {
+                // If hostName doesn't exist as a key, create a result with "MISS_RULE"
+                String sourceHost = hostName; // Use the provided hostName
+                String destinationHost = ummState.getPayload(); // Assuming payload is the destinationHost
+                String destinationPort = ummState.getPayload(); // Assuming payload is the destinationPort
+                String result = "MISS_RULE";
+
+                // Create a TCPConnectivityResult object and add it to the set
+                TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+                results.add(resultObject);
+            }
+        }
+
+        return results;
+    }
+
+    private String getResult(TCPConnectivityModel connectivityModel) {
+        int state = Integer.parseInt(connectivityModel.getState());
+        String message = connectivityModel.getMessage();
+
+        if (state == 0) {
+            return "SUCCESS";
+        } else if (state > 0 && message.contains("No connectivity")) {
+            return "FAILURE";
+        } else if (state > 0 && message.contains("Executable not found")) {
+            return "MISS_MODULE";
+        } else {
+            return "MISS_OTHER"; // Handle the case where message doesn't match other conditions
+        }
+    }
+}
+
+With this modification, when the state value is greater than 0, but the message field doesn't contain "No connectivity" or "Executable not found," the getResult method will set the result value to "MISS_OTHER." This handles the additional condition as you specified.
+
