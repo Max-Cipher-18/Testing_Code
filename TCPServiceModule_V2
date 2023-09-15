@@ -89,4 +89,105 @@ public Set<TCPConnectivityResult> processUmmStates(List<UmmState> ummStates, Map
 
 With this modification, you have a clear and type-safe way to represent and work with the result conditions using the Result enum, improving code readability and maintainability.
 
+=============================================================
+
+Let's implement Exception Handling
+Exception handling is an important aspect of any software service to ensure that errors and exceptional conditions are handled gracefully. In your service, you can handle exceptions using try-catch blocks and provide appropriate error messages or responses. Here's how you can implement exception handling:
+
+Define Custom Exceptions (Optional): If you have specific error conditions that you want to handle differently, consider creating custom exception classes. For example:
+
+public class UmmStateException extends Exception {
+    public UmmStateException(String message) {
+        super(message);
+    }
+}
+
+Handle Exceptions in Your Service:
+
+Modify your processUmmStates method to handle exceptions and provide meaningful error messages or responses. Here's an example of how to handle exceptions and return an error message:
+
+public class YourService {
+
+    public Set<TCPConnectivityResult> processUmmStates(List<UmmState> ummStates, Map<String, Map<String, TCPConnectivityModel>> connectivityMap) {
+        Set<TCPConnectivityResult> results = new HashSet<>();
+
+        for (UmmState ummState : ummStates) {
+            try {
+                String hostName = ummState.getHostName();
+                String instanceId = ummState.getInstanceId();
+
+                if (connectivityMap.containsKey(hostName)) {
+                    Map<String, TCPConnectivityModel> innerMap = connectivityMap.get(hostName);
+
+                    if (innerMap.containsKey(instanceId)) {
+                        TCPConnectivityModel connectivityModel = innerMap.get(instanceId);
+                        String sourceHost = hostName;
+                        String destinationHost = ummState.getPayload();
+                        String destinationPort = ummState.getPayload();
+                        Result result = ResultCalculator.calculateResult(connectivityModel);
+
+                        TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+                        results.add(resultObject);
+                    } else {
+                        // Handle the case where instanceId doesn't exist in the inner map
+                        // You can throw a custom exception or return an error response
+                        throw new UmmStateException("InstanceId not found in the inner map");
+                    }
+                } else {
+                    // Handle the case where hostName doesn't exist in the outer map
+                    // You can throw a custom exception or return an error response
+                    throw new UmmStateException("HostName not found in the outer map");
+                }
+            } catch (UmmStateException e) {
+                // Handle your custom exception here
+                // You can log the error or return an error response
+                System.err.println("UmmStateException: " + e.getMessage());
+            } catch (Exception ex) {
+                // Handle other exceptions here
+                // You can log the error or return a general error response
+                ex.printStackTrace();
+            }
+        }
+
+        return results;
+    }
+}
+
+In this example, we catch the custom UmmStateException as well as generic exceptions. Depending on the exception type, you can log the error, return an error response, or take any other appropriate action.
+
+Logging: Consider using a logging framework like Log4j or SLF4J to log exceptions and errors consistently across your service. Proper logging helps in debugging and monitoring.
+
+Error Responses: If your service exposes an API, define a consistent format for error responses to provide clear feedback to clients when exceptions occur.
+
+Implementing exception handling in your service ensures that unexpected situations are handled gracefully, and it helps maintain the reliability and stability of your application.
+
+=========================================
+Let's implement Error Handling
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class YourService {
+
+    private static final Logger logger = LoggerFactory.getLogger(YourService.class);
+
+    public Set<TCPConnectivityResult> processUmmStates(List<UmmState> ummStates, Map<String, Map<String, TCPConnectivityModel>> connectivityMap) {
+        Set<TCPConnectivityResult> results = new HashSet<>();
+
+        for (UmmState ummState : ummStates) {
+            try {
+                // Your existing code
+
+                logger.info("Successfully processed UmmState: {}", ummState.getId());
+            } catch (Exception e) {
+                logger.error("Error processing UmmState: {}", ummState.getId(), e);
+            }
+        }
+
+        return results;
+    }
+}
+
+
+=============================================================
 
