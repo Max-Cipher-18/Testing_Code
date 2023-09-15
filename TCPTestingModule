@@ -1,0 +1,150 @@
+We are given a List <UmmState> and Map<String, Map<String, TCPConnectivityModel>> objects.
+Here UmmState object has following fields:
+hostName, instanceId and payload - all are String types.
+And TCPConnectivityModel has following fields:
+message, timestamp and state - all are String fields.
+
+Don't code now. I will add further requirements. 
+
+We need to iterate over the List<UmmState>.
+While iterating, we have to check if the hostName in the UmmState matches the Key in the Map<String, Map<String, TCPConnectivityModel>>.
+If the match is found, we have to get that value from the Map, which is again a Map<String, TCPConnectivityModel>.
+Then, check whether instanceId of UmmState exists as a Key in the Map<String, TCPConnectivityModel>.
+If it exists, print "Hello".
+
+import java.util.List;
+import java.util.Map;
+
+public class YourService {
+
+    public void processUmmStates(List<UmmState> ummStates, Map<String, Map<String, TCPConnectivityModel>> connectivityMap) {
+        for (UmmState ummState : ummStates) {
+            String hostName = ummState.getHostName();
+            String instanceId = ummState.getInstanceId();
+
+            // Check if hostName exists as a key in the outer map
+            if (connectivityMap.containsKey(hostName)) {
+                Map<String, TCPConnectivityModel> innerMap = connectivityMap.get(hostName);
+
+                // Check if instanceId exists as a key in the inner map
+                if (innerMap.containsKey(instanceId)) {
+                    System.out.println("Hello");
+                }
+            }
+        }
+    }
+}
+
+In this code:
+
+We iterate through the List<UmmState> using an enhanced for loop.
+
+For each UmmState, we extract the hostName and instanceId.
+
+We check if the hostName exists as a key in the outer map (connectivityMap).
+
+If the hostName exists, we retrieve the corresponding inner map from connectivityMap.
+
+In the inner map, we check if the instanceId exists as a key.
+
+If both conditions are met (i.e., hostName exists in the outer map and instanceId exists in the inner map), we print "Hello."
+
+You can call the processUmmStates method in your Spring Boot service to perform this processing on your UmmState objects with the provided maps.
+
+===============================================================================
+Now, let's improvise the code. Instead of printing "Hello".
+We want to add few details to the object TCPConnectivityResult and then add this object to the Set.
+
+Let's understand, what will get stored in the TCPConnectivityResult, the structure of this class will be as follows:
+String sourceHost;
+String destinationHost;
+String destinationPort;
+String result;
+And the values that I want to store in this object are
+sourceHost will have key from Map<String, Map<String, TCPConnectivityModel>>,
+destinationHost will have value from payload field of UmmState object,
+destinationPort will have value from payload field of UmmState object, and
+result will have either of these values, based of following conditions:
+SUCCESS - if state value in TCPConnectivityModel is equal to 0.
+FAILURE - if state value in TCPConnectivityModel is greater than 0, and message contains "No connectivity".
+MISS_MODULE - if state value in TCPConnectivityModel is greater than 0, and message contains "Executable not found".
+
+REPLY:-
+To store the details in a TCPConnectivityResult object and add it to a Set, you can modify the code as follows:
+
+First, define the TCPConnectivityResult class with the required fields and create a constructor to initialize the object:
+public class TCPConnectivityResult {
+    private String sourceHost;
+    private String destinationHost;
+    private String destinationPort;
+    private String result;
+
+    public TCPConnectivityResult(String sourceHost, String destinationHost, String destinationPort, String result) {
+        this.sourceHost = sourceHost;
+        this.destinationHost = destinationHost;
+        this.destinationPort = destinationPort;
+        this.result = result;
+    }
+
+    // Getters and setters (if needed)
+}
+
+Then, modify your processUmmStates method to create TCPConnectivityResult objects based on your specified conditions and add them to a Set<TCPConnectivityResult>:
+
+import java.util.*;
+
+public class YourService {
+
+    public Set<TCPConnectivityResult> processUmmStates(List<UmmState> ummStates, Map<String, Map<String, TCPConnectivityModel>> connectivityMap) {
+        Set<TCPConnectivityResult> results = new HashSet<>();
+
+        for (UmmState ummState : ummStates) {
+            String hostName = ummState.getHostName();
+            String instanceId = ummState.getInstanceId();
+
+            // Check if hostName exists as a key in the outer map
+            if (connectivityMap.containsKey(hostName)) {
+                Map<String, TCPConnectivityModel> innerMap = connectivityMap.get(hostName);
+
+                // Check if instanceId exists as a key in the inner map
+                if (innerMap.containsKey(instanceId)) {
+                    TCPConnectivityModel connectivityModel = innerMap.get(instanceId);
+                    String sourceHost = hostName;
+                    String destinationHost = ummState.getPayload(); // Assuming payload is the destinationHost
+                    String destinationPort = ummState.getPayload(); // Assuming payload is the destinationPort
+                    String result = getResult(connectivityModel);
+
+                    // Create a TCPConnectivityResult object and add it to the set
+                    TCPConnectivityResult resultObject = new TCPConnectivityResult(sourceHost, destinationHost, destinationPort, result);
+                    results.add(resultObject);
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private String getResult(TCPConnectivityModel connectivityModel) {
+        int state = Integer.parseInt(connectivityModel.getState());
+        String message = connectivityModel.getMessage();
+
+        if (state == 0) {
+            return "SUCCESS";
+        } else if (state > 0 && message.contains("No connectivity")) {
+            return "FAILURE";
+        } else if (state > 0 && message.contains("Executable not found")) {
+            return "MISS_MODULE";
+        } else {
+            return "UNKNOWN"; // Add a default value or handle other cases as needed
+        }
+    }
+}
+
+In this code:
+
+We create a Set<TCPConnectivityResult> to store the results.
+For each UmmState, we determine the sourceHost, destinationHost, destinationPort, and result based on the specified conditions using the getResult method.
+We create a TCPConnectivityResult object and add it to the results set.
+Finally, we return the set of TCPConnectivityResult objects.
+This code ensures that the TCPConnectivityResult objects are created and populated with the appropriate values based on your conditions and added to the set for further processing or storage.
+
