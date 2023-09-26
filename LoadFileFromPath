@@ -1,0 +1,20 @@
+ClassLoader classLoader = ReadFileFromResources.class.getClassLoader();
+String fileName = "example.txt"; // Replace with your file's name
+URL resourceUrl = classLoader.getResource(fileName);
+
+if (resourceUrl != null) {
+    try {
+        Path filePath = Paths.get(resourceUrl.toURI());
+        String normalizedPath = filePath.toString(); // Normalize the path
+        if (normalizedPath.startsWith("/")) {
+            normalizedPath = normalizedPath.substring(1); // Remove the leading forward slash
+        }
+
+        // Now, `normalizedPath` contains the correct file path
+        System.out.println(normalizedPath);
+    } catch (URISyntaxException e) {
+        e.printStackTrace();
+    }
+} else {
+    System.out.println("Resource not found: " + fileName);
+}
