@@ -128,3 +128,45 @@ public class HandlerConfig {
     }
 }
 
+Here's the ScheduledConnectivityTestController class for your application:
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Controller;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Controller
+public class ScheduledConnectivityTestController {
+
+    private final ParallelTestHandler parallelTestHandler;
+    private final TCPTestServiceHandler tcpTestServiceHandler;
+    private final IPEnrichmentServiceHandler ipEnrichmentServiceHandler;
+    private final NetworkbotTestServiceHandler networkbotTestServiceHandler;
+
+    public ScheduledConnectivityTestController(
+            ParallelTestHandler parallelTestHandler,
+            TCPTestServiceHandler tcpTestServiceHandler,
+            IPEnrichmentServiceHandler ipEnrichmentServiceHandler,
+            NetworkbotTestServiceHandler networkbotTestServiceHandler) {
+        this.parallelTestHandler = parallelTestHandler;
+        this.tcpTestServiceHandler = tcpTestServiceHandler;
+        this.ipEnrichmentServiceHandler = ipEnrichmentServiceHandler;
+        this.networkbotTestServiceHandler = networkbotTestServiceHandler;
+    }
+
+    @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // Run every 24 hours
+    public void runConnectivityTest() {
+        // Initialize the map with connectivity data
+        Map<TestConnectivityObject, Result> connectivityData = new HashMap<>();
+
+        // Call the handlers individually
+        parallelTestHandler.handle(connectivityData);
+        tcpTestServiceHandler.handle(connectivityData);
+        ipEnrichmentServiceHandler.handle(connectivityData);
+        networkbotTestServiceHandler.handle(connectivityData);
+
+        // The map will be updated as the data flows through the handlers
+
+        // Add additional logic here if needed, such as logging or notifications.
+    }
+}
