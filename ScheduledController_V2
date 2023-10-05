@@ -1,0 +1,130 @@
+Define the TestConnectivityObject and Result classes:
+public class TestConnectivityObject {
+    private String srcHost;
+    private String destHost;
+    private String destPort;
+
+    // Constructors, getters, and setters
+}
+
+public class Result {
+    private String sourceEntityType;
+    private String sourceEntityValue;
+    private String sourceEntityIP;
+    private String destinationUrl;
+    private String destinationIP;
+    private String destinationPort;
+    private String networkbotResult;
+    private boolean requiresLegacyTicket;
+    private String tcpTestResult;
+    private String parallelTestResult;
+    private Date lastTestTime;
+    private String tmdOrder;
+    private String starTicket;
+    private String eta;
+    private Date executionDate;
+
+    // Constructors, getters, and setters
+}
+
+
+Define the ConnectivityTestHandler interface:
+import java.util.Map;
+
+public interface ConnectivityTestHandler {
+    void handle(Map<TestConnectivityObject, Result> connectivityData);
+}
+
+Implement the handler classes with the required service injections:
+public class ParallelTestHandler implements ConnectivityTestHandler {
+
+    private final ParallelTestService parallelTestService;
+
+    public ParallelTestHandler(ParallelTestService parallelTestService) {
+        this.parallelTestService = parallelTestService;
+    }
+
+    @Override
+    public void handle(Map<TestConnectivityObject, Result> connectivityData) {
+        // Use the injected parallelTestService to perform Parallel Test logic
+        // Example: parallelTestService.performParallelTest(connectivityData);
+
+        // Continue with the rest of the handling logic
+    }
+}
+
+public class TCPTestServiceHandler implements ConnectivityTestHandler {
+
+    private final TCPTestService tcpTestService;
+
+    public TCPTestServiceHandler(TCPTestService tcpTestService) {
+        this.tcpTestService = tcpTestService;
+    }
+
+    @Override
+    public void handle(Map<TestConnectivityObject, Result> connectivityData) {
+        // Use the injected tcpTestService to perform TCP Test logic
+        // Example: tcpTestService.performTcpTest(connectivityData);
+
+        // Continue with the rest of the handling logic
+    }
+}
+
+public class IPEnrichmentServiceHandler implements ConnectivityTestHandler {
+
+    private final IPEnrichmentService ipEnrichmentService;
+
+    public IPEnrichmentServiceHandler(IPEnrichmentService ipEnrichmentService) {
+        this.ipEnrichmentService = ipEnrichmentService;
+    }
+
+    @Override
+    public void handle(Map<TestConnectivityObject, Result> connectivityData) {
+        // Use the injected ipEnrichmentService to perform IP Enrichment logic
+        // Example: ipEnrichmentService.performIpEnrichment(connectivityData);
+
+        // Continue with the rest of the handling logic
+    }
+}
+
+public class NetworkbotTestServiceHandler implements ConnectivityTestHandler {
+
+    private final NetworkbotTestService networkbotTestService;
+
+    public NetworkbotTestServiceHandler(NetworkbotTestService networkbotTestService) {
+        this.networkbotTestService = networkbotTestService;
+    }
+
+    @Override
+    public void handle(Map<TestConnectivityObject, Result> connectivityData) {
+        // Use the injected networkbotTestService to perform Networkbot Test logic
+        // Example: networkbotTestService.performNetworkbotTest(connectivityData);
+
+        // Continue with the rest of the handling logic
+    }
+}
+
+Create configuration classes to define and wire the service and handler beans manually:
+public class HandlerConfig {
+
+    @Bean
+    public ParallelTestHandler parallelTestHandler(ParallelTestService parallelTestService) {
+        return new ParallelTestHandler(parallelTestService);
+    }
+
+    @Bean
+    public TCPTestServiceHandler tcpTestServiceHandler(TCPTestService tcpTestService) {
+        return new TCPTestServiceHandler(tcpTestService);
+    }
+
+    @Bean
+    public IPEnrichmentServiceHandler ipEnrichmentServiceHandler(IPEnrichmentService ipEnrichmentService) {
+        return new IPEnrichmentServiceHandler(ipEnrichmentService);
+    }
+
+    @Bean
+    public NetworkbotTestServiceHandler networkbotTestServiceHandler(NetworkbotTestService networkbotTestService) {
+        return new NetworkbotTestServiceHandler(networkbotTestService);
+    }
+}
+
