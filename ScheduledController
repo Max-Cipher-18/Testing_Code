@@ -1,0 +1,317 @@
+Certainly! If you prefer to configure and wire your components manually using configuration classes without using @Autowired, you can do so. Here's the rewritten application using manual configuration:
+
+Create the TestConnectivityObject and Result classes as before.
+
+Define the ConnectivityTestHandler interface:
+public interface ConnectivityTestHandler {
+    void process(Map<TestConnectivityObject, Result> connectivityData);
+}
+
+Implement the handler classes without any annotations:
+import java.util.Map;
+
+public class ParallelTestHandler implements ConnectivityTestHandler {
+    @Override
+    public void process(Map<TestConnectivityObject, Result> connectivityData) {
+        // Implement Parallel Test logic here
+    }
+}
+
+public class TCPTestServiceHandler implements ConnectivityTestHandler {
+    @Override
+    public void process(Map<TestConnectivityObject, Result> connectivityData) {
+        // Implement TCP Test logic here
+    }
+}
+
+public class IPEnrichmentServiceHandler implements ConnectivityTestHandler {
+    @Override
+    public void process(Map<TestConnectivityObject, Result> connectivityData) {
+        // Implement IP Enrichment logic here
+    }
+}
+
+public class NetworkbotTestServiceHandler implements ConnectivityTestHandler {
+    @Override
+    public void process(Map<TestConnectivityObject, Result> connectivityData) {
+        // Implement Networkbot Test logic here
+    }
+}
+
+Create configuration classes to define and wire the handler beans manually:
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class HandlerConfig {
+
+    @Bean
+    public ParallelTestHandler parallelTestHandler() {
+        return new ParallelTestHandler();
+    }
+
+    @Bean
+    public TCPTestServiceHandler tcpTestServiceHandler() {
+        return new TCPTestServiceHandler();
+    }
+
+    @Bean
+    public IPEnrichmentServiceHandler ipEnrichmentServiceHandler() {
+        return new IPEnrichmentServiceHandler();
+    }
+
+    @Bean
+    public NetworkbotTestServiceHandler networkbotTestServiceHandler() {
+        return new NetworkbotTestServiceHandler();
+    }
+}
+
+Create the ScheduledConnectivityTestController class to call the handlers individually:
+import org.springframework.scheduling.annotation.Scheduled;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ScheduledConnectivityTestController {
+
+    private final ParallelTestHandler parallelTestHandler;
+    private final TCPTestServiceHandler tcpTestServiceHandler;
+    private final IPEnrichmentServiceHandler ipEnrichmentServiceHandler;
+    private final NetworkbotTestServiceHandler networkbotTestServiceHandler;
+
+    public ScheduledConnectivityTestController(
+            ParallelTestHandler parallelTestHandler,
+            TCPTestServiceHandler tcpTestServiceHandler,
+            IPEnrichmentServiceHandler ipEnrichmentServiceHandler,
+            NetworkbotTestServiceHandler networkbotTestServiceHandler) {
+        this.parallelTestHandler = parallelTestHandler;
+        this.tcpTestServiceHandler = tcpTestServiceHandler;
+        this.ipEnrichmentServiceHandler = ipEnrichmentServiceHandler;
+        this.networkbotTestServiceHandler = networkbotTestServiceHandler;
+    }
+
+    @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // Run every 24 hours
+    public void runConnectivityTest() {
+        // Initialize the map with connectivity data
+        Map<TestConnectivityObject, Result> connectivityData = new HashMap<>();
+
+        // Call the handlers individually
+        parallelTestHandler.process(connectivityData);
+        tcpTestServiceHandler.process(connectivityData);
+        ipEnrichmentServiceHandler.process(connectivityData);
+        networkbotTestServiceHandler.process(connectivityData);
+
+        // The map will be updated as the data flows through the handlers
+
+        // Add additional logic here if needed, such as logging or notifications.
+    }
+}
+
+Finally, create a Spring Boot main application class to run the application:
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@SpringBootApplication
+@EnableScheduling
+@Import(HandlerConfig.class)
+public class ConnectivityTestApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ConnectivityTestApplication.class, args);
+    }
+}
+
+
+==================================================================
+import java.util.Date;
+
+public class TestConnectivityObject {
+    private String srcHost;
+    private String destHost;
+    private String destPort;
+
+    // Constructors, getters, and setters
+
+    public TestConnectivityObject() {
+    }
+
+    public TestConnectivityObject(String srcHost, String destHost, String destPort) {
+        this.srcHost = srcHost;
+        this.destHost = destHost;
+        this.destPort = destPort;
+    }
+
+    public String getSrcHost() {
+        return srcHost;
+    }
+
+    public void setSrcHost(String srcHost) {
+        this.srcHost = srcHost;
+    }
+
+    public String getDestHost() {
+        return destHost;
+    }
+
+    public void setDestHost(String destHost) {
+        this.destHost = destHost;
+    }
+
+    public String getDestPort() {
+        return destPort;
+    }
+
+    public void setDestPort(String destPort) {
+        this.destPort = destPort;
+    }
+}
+
+=================================================
+import java.util.Date;
+
+public class Result {
+    private String sourceEntityType;
+    private String sourceEntityValue;
+    private String sourceEntityIP;
+    private String destinationUrl;
+    private String destinationIP;
+    private String destinationPort;
+    private String networkbotResult;
+    private boolean requiresLegacyTicket;
+    private String tcpTestResult;
+    private String parallelTestResult;
+    private Date lastTestTime;
+    private String tmdOrder;
+    private String starTicket;
+    private String eta;
+    private Date executionDate;
+
+    // Constructors, getters, and setters
+
+    public Result() {
+    }
+
+    public String getSourceEntityType() {
+        return sourceEntityType;
+    }
+
+    public void setSourceEntityType(String sourceEntityType) {
+        this.sourceEntityType = sourceEntityType;
+    }
+
+    public String getSourceEntityValue() {
+        return sourceEntityValue;
+    }
+
+    public void setSourceEntityValue(String sourceEntityValue) {
+        this.sourceEntityValue = sourceEntityValue;
+    }
+
+    public String getSourceEntityIP() {
+        return sourceEntityIP;
+    }
+
+    public void setSourceEntityIP(String sourceEntityIP) {
+        this.sourceEntityIP = sourceEntityIP;
+    }
+
+    public String getDestinationUrl() {
+        return destinationUrl;
+    }
+
+    public void setDestinationUrl(String destinationUrl) {
+        this.destinationUrl = destinationUrl;
+    }
+
+    public String getDestinationIP() {
+        return destinationIP;
+    }
+
+    public void setDestinationIP(String destinationIP) {
+        this.destinationIP = destinationIP;
+    }
+
+    public String getDestinationPort() {
+        return destinationPort;
+    }
+
+    public void setDestinationPort(String destinationPort) {
+        this.destinationPort = destinationPort;
+    }
+
+    public String getNetworkbotResult() {
+        return networkbotResult;
+    }
+
+    public void setNetworkbotResult(String networkbotResult) {
+        this.networkbotResult = networkbotResult;
+    }
+
+    public boolean isRequiresLegacyTicket() {
+        return requiresLegacyTicket;
+    }
+
+    public void setRequiresLegacyTicket(boolean requiresLegacyTicket) {
+        this.requiresLegacyTicket = requiresLegacyTicket;
+    }
+
+    public String getTcpTestResult() {
+        return tcpTestResult;
+    }
+
+    public void setTcpTestResult(String tcpTestResult) {
+        this.tcpTestResult = tcpTestResult;
+    }
+
+    public String getParallelTestResult() {
+        return parallelTestResult;
+    }
+
+    public void setParallelTestResult(String parallelTestResult) {
+        this.parallelTestResult = parallelTestResult;
+    }
+
+    public Date getLastTestTime() {
+        return lastTestTime;
+    }
+
+    public void setLastTestTime(Date lastTestTime) {
+        this.lastTestTime = lastTestTime;
+    }
+
+    public String getTmdOrder() {
+        return tmdOrder;
+    }
+
+    public void setTmdOrder(String tmdOrder) {
+        this.tmdOrder = tmdOrder;
+    }
+
+    public String getStarTicket() {
+        return starTicket;
+    }
+
+    public void setStarTicket(String starTicket) {
+        this.starTicket = starTicket;
+    }
+
+    public String getEta() {
+        return eta;
+    }
+
+    public void setEta(String eta) {
+        this.eta = eta;
+    }
+
+    public Date getExecutionDate() {
+        return executionDate;
+    }
+
+    public void setExecutionDate(Date executionDate) {
+        this.executionDate = executionDate;
+    }
+}
+
+
+==========================================
