@@ -1,0 +1,40 @@
+Certainly, I can provide a more production-ready version of the code with improved error handling and additional comments:
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+public class IPEnrichmentService {
+
+    public static String convertHostnameToIPAddress(String hostname) {
+        try {
+            InetAddress inetAddress = InetAddress.getByName(hostname);
+            return inetAddress.getHostAddress();
+        } catch (UnknownHostException e) {
+            // Log the error and return an error message or throw a custom exception
+            System.err.println("Error resolving IP address for hostname: " + hostname);
+            e.printStackTrace();
+            return null; // You can customize this to return an error code or message
+        }
+    }
+
+    public static void main(String[] args) {
+        String hostname = "example.com"; // Replace with the hostname you want to convert
+
+        String ipAddress = convertHostnameToIPAddress(hostname);
+
+        if (ipAddress != null) {
+            System.out.println("Hostname: " + hostname);
+            System.out.println("IP Address: " + ipAddress);
+        } else {
+            System.out.println("Unable to resolve the IP address for the hostname: " + hostname);
+        }
+    }
+}
+
+In this updated version:
+
+We've added a more informative error message when an exception is caught in the convertHostnameToIPAddress method.
+We've included comments for clarity and documentation.
+The code now prints an error message to the standard error stream (System.err) when a hostname cannot be resolved, providing better visibility into the issue.
+You can customize the return null; line to return an error code or message that suits your application's needs.
+This code should be more suitable for production use, but please consider further enhancing it depending on your specific requirements, such as handling exceptions gracefully, logging errors to a file, or implementing retry mechanisms if needed.
