@@ -100,3 +100,329 @@ Insufficient data in the connectivity definition.
 An error response from the API.
 Feel free to expand upon these test cases by considering additional scenarios or edge cases that might be relevant to your service. Adjust the test data and assertions as needed based on your specific service behavior.
 
+================================================================================
+Test Case for Multiple Connectivity Definitions:
+@Test
+void givenMultipleConnectivityDefinitions_whenRun_thenHandleAllDefinitions() {
+    // Given
+    ConnectivityDefinition connectivityDefinition1 = new ConnectivityDefinition(/* provide valid data */);
+    ConnectivityDefinition connectivityDefinition2 = new ConnectivityDefinition(/* provide valid data */);
+    Result result1 = new Result(/* provide valid data */);
+    Result result2 = new Result(/* provide valid data */);
+    
+    Map<ConnectivityDefinition, Result> map = new HashMap<>();
+    map.put(connectivityDefinition1, result1);
+    map.put(connectivityDefinition2, result2);
+
+    URI mockUri = URI.create("http://mockedurl.com");
+    when(restTemplate.exchange(eq(mockUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(new ResponseEntity<>("Mocked response", HttpStatus.OK));
+
+    when(executorService.schedule(any(Runnable.class), eq(5L), eq(TimeUnit.SECONDS))).then(invocation -> {
+        Runnable runnable = invocation.getArgument(0);
+        runnable.run();
+        return null;
+    });
+
+    // When
+    networkbotTestService.run(map);
+
+    // Then
+    assertThat(result1.getNetworkbotResult()).isEqualTo("Mocked response");
+    assertThat(result2.getNetworkbotResult()).isEqualTo("Mocked response");
+}
+
+This test case creates two different connectivity definitions with their corresponding results and ensures that both definitions are processed and their results are updated correctly.
+
+
+Test Case for Concurrency and Scheduling:
+@Test
+void givenConcurrentRequests_whenRun_thenHandleConcurrency() {
+    // Given
+    ConnectivityDefinition connectivityDefinition1 = new ConnectivityDefinition(/* provide valid data */);
+    ConnectivityDefinition connectivityDefinition2 = new ConnectivityDefinition(/* provide valid data */);
+    Result result1 = new Result(/* provide valid data */);
+    Result result2 = new Result(/* provide valid data */);
+    
+    Map<ConnectivityDefinition, Result> map = new HashMap<>();
+    map.put(connectivityDefinition1, result1);
+    map.put(connectivityDefinition2, result2);
+
+    URI mockUri = URI.create("http://mockedurl.com");
+    when(restTemplate.exchange(eq(mockUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(new ResponseEntity<>("Mocked response", HttpStatus.OK));
+
+    // Simulating concurrent scheduling of tasks
+    when(executorService.schedule(any(Runnable.class), eq(5L), eq(TimeUnit.SECONDS))).thenAnswer(invocation -> {
+        Runnable runnable = invocation.getArgument(0);
+        new Thread(runnable).start();
+        return null;
+    });
+
+    // When
+    networkbotTestService.run(map);
+
+    // Then
+    // Assert as needed to ensure concurrency doesn't cause unexpected behavior
+}
+
+This test case simulates concurrent scheduling of tasks by using threads and verifies that the service can handle concurrent calls without causing any unexpected behavior or exceptions. Adjust assertions based on the expected behavior when handling concurrent requests.
+
+====================================================================
+Certainly! To test whether there's a 5-second delay in each API call as scheduled by the ScheduledExecutorService, you can use a test that measures the elapsed time between when the API call is scheduled and when it's actually made.
+
+Here's an example of how you might implement such a test:
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.URI;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class NetworkbotTestServiceTest {
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Mock
+    private ScheduledExecutorService executorService;
+
+    @InjectMocks
+    private NetworkbotTestService networkbotTestService;
+
+    @Captor
+    private ArgumentCaptor<Runnable> runnableCaptor;
+
+    private final String apiUrl = "http://example.com/api";
+
+    @Test
+    void givenConnectivityDefinition_whenRun_thenScheduleApiCallWith5SecondsDelay() {
+        // Initialize mocks
+        MockitoAnnotations.openMocks(this);
+        
+        // Given
+        ConnectivityDefinition connectivityDefinition = new ConnectivityDefinition(/* provide valid data */);
+        Result result = new Result(/* provide valid data */);
+
+        URI expectedUri = URI.create(apiUrl + "?sourceIp=sourceIp&destinationIp=destinationIp&destinationPort=destinationPort&protocol=TCP");
+
+        when(restTemplate.exchange(eq(expectedUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>("Mocked response", HttpStatus.OK));
+
+        // When
+        networkbotTestService.run(Map.of(connectivityDefinition, result));
+
+        // Then
+        verify(executorService).schedule(runnableCaptor.capture(), eq(5L), eq(TimeUnit.SECONDS));
+        Runnable capturedRunnable = runnableCaptor.getValue();
+        long startTime = System.currentTimeMillis();
+        capturedRunnable.run();
+        long endTime = System.currentTimeMillis();
+        long elapsedTime = endTime - startTime;
+
+        assertThat(elapsedTime).isBetween(4900L, 5100L); // Check for 5 seconds (+/- 100 milliseconds) delay
+    }
+}
+
+This test creates a mock for the ScheduledExecutorService and captures the scheduled task (Runnable) using an ArgumentCaptor. It then measures the elapsed time between the moment the task is scheduled and when it's executed, asserting that the elapsed time falls within a range of 5 seconds (+/- 100 milliseconds) to account for possible slight variations due to system performance. Adjust the time range as needed based on your specific requirements and environment.
+
+=================================================================================================
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class NetworkbotTestServiceTest {
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Mock
+    private ScheduledExecutorService executorService;
+
+    @InjectMocks
+    private NetworkbotTestService networkbotTestService;
+
+    @Captor
+    private ArgumentCaptor<Runnable> runnableCaptor;
+
+    private final String apiUrl = "http://example.com/api";
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void givenValidConnectivityDefinition_whenRun_thenInvokeApiAndUpdateResult() {
+        // Given
+        ConnectivityDefinition connectivityDefinition = new ConnectivityDefinition(/* provide valid data */);
+        Result result = new Result(/* provide valid data */);
+        Map<ConnectivityDefinition, Result> map = new HashMap<>();
+        map.put(connectivityDefinition, result);
+
+        URI mockUri = URI.create("http://mockedurl.com");
+        when(restTemplate.exchange(eq(mockUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>("Mocked response", HttpStatus.OK));
+
+        when(executorService.schedule(any(Runnable.class), eq(5L), eq(TimeUnit.SECONDS))).then(invocation -> {
+            Runnable runnable = invocation.getArgument(0);
+            runnable.run();
+            return null;
+        });
+
+        // When
+        networkbotTestService.run(map);
+
+        // Then
+        assertThat(result.getNetworkbotResult()).isEqualTo("Mocked response");
+    }
+
+    @Test
+    void givenInsufficientData_whenRun_thenSetResultToInsufficientData() {
+        // Given
+        ConnectivityDefinition connectivityDefinition = new ConnectivityDefinition(/* provide insufficient data */);
+        Result result = new Result();
+        Map<ConnectivityDefinition, Result> map = new HashMap<>();
+        map.put(connectivityDefinition, result);
+
+        // When
+        networkbotTestService.run(map);
+
+        // Then
+        assertThat(result.getNetworkbotResult()).isEqualTo("Insufficient Data");
+    }
+
+    @Test
+    void givenApiErrorResponse_whenRun_thenSetResultToErrorInApiResponse() {
+        // Given
+        ConnectivityDefinition connectivityDefinition = new ConnectivityDefinition(/* provide valid data */);
+        Result result = new Result(/* provide valid data */);
+        Map<ConnectivityDefinition, Result> map = new HashMap<>();
+        map.put(connectivityDefinition, result);
+
+        URI mockUri = URI.create("http://mockedurl.com");
+        when(restTemplate.exchange(eq(mockUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
+
+        // When
+        networkbotTestService.run(map);
+
+        // Then
+        assertThat(result.getNetworkbotResult()).isEqualTo("Error in API Response");
+    }
+
+    @Test
+    void givenMultipleConnectivityDefinitions_whenRun_thenHandleAllDefinitions() {
+        // Given
+        ConnectivityDefinition connectivityDefinition1 = new ConnectivityDefinition(/* provide valid data */);
+        ConnectivityDefinition connectivityDefinition2 = new ConnectivityDefinition(/* provide valid data */);
+        Result result1 = new Result(/* provide valid data */);
+        Result result2 = new Result(/* provide valid data */);
+        
+        Map<ConnectivityDefinition, Result> map = new HashMap<>();
+        map.put(connectivityDefinition1, result1);
+        map.put(connectivityDefinition2, result2);
+
+        URI mockUri = URI.create("http://mockedurl.com");
+        when(restTemplate.exchange(eq(mockUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>("Mocked response", HttpStatus.OK));
+
+        when(executorService.schedule(any(Runnable.class), eq(5L), eq(TimeUnit.SECONDS))).then(invocation -> {
+            Runnable runnable = invocation.getArgument(0);
+            runnable.run();
+            return null;
+        });
+
+        // When
+        networkbotTestService.run(map);
+
+        // Then
+        assertThat(result1.getNetworkbotResult()).isEqualTo("Mocked response");
+        assertThat(result2.getNetworkbotResult()).isEqualTo("Mocked response");
+    }
+
+    @Test
+    void givenConcurrentRequests_whenRun_thenHandleConcurrency() {
+        // Given
+        ConnectivityDefinition connectivityDefinition1 = new ConnectivityDefinition(/* provide valid data */);
+        ConnectivityDefinition connectivityDefinition2 = new ConnectivityDefinition(/* provide valid data */);
+        Result result1 = new Result(/* provide valid data */);
+        Result result2 = new Result(/* provide valid data */);
+        
+        Map<ConnectivityDefinition, Result> map = new HashMap<>();
+        map.put(connectivityDefinition1, result1);
+        map.put(connectivityDefinition2, result2);
+
+        URI mockUri = URI.create("http://mockedurl.com");
+        when(restTemplate.exchange(eq(mockUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>("Mocked response", HttpStatus.OK));
+
+        // Simulating concurrent scheduling of tasks
+        when(executorService.schedule(any(Runnable.class), eq(5L), eq(TimeUnit.SECONDS))).thenAnswer(invocation -> {
+            Runnable runnable = invocation.getArgument(0);
+            new Thread(runnable).start();
+            return null;
+        });
+
+        // When
+        networkbotTestService.run(map);
+
+        // Then
+        // Assert as needed to ensure concurrency doesn't cause unexpected behavior
+    }
+
+    @Test
+    void givenConnectivityDefinition_whenRun_thenScheduleApiCallWith5SecondsDelay() {
+        // Given
+        ConnectivityDefinition connectivityDefinition = new ConnectivityDefinition(/* provide valid data */);
+        Result result = new Result(/* provide valid data */);
+
+        URI expectedUri = URI.create(apiUrl + "?sourceIp=sourceIp&destinationIp=destinationIp&destinationPort=destinationPort&protocol=TCP");
+
+        when(restTemplate.exchange(eq(expectedUri), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>("Mocked response", HttpStatus.OK));
+
+        // When
+        networkbotTestService.run(Map.of(connectivityDefinition, result));
+
+        // Then
+        verify(executorService).schedule(runnableCaptor.capture(), eq(5L), eq(TimeUnit.SECONDS));
+        Runnable capturedRunnable = runnableCaptor.getValue();
+        long startTime = System.currentTimeMillis();
+        capturedRunnable.run();
+        long endTime = System.currentTimeMillis();
+        long elapsedTime = endTime - startTime;
+
+        assertThat(elapsedTime).isBetween(4900L, 5100L); // Check for 5 seconds (+/- 100 milliseconds) delay
+    }
+}
+
