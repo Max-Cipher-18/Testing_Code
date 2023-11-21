@@ -1,0 +1,60 @@
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
+public class NotificationServiceTest {
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    private NotificationService notificationService;
+
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.openMocks(this);
+        notificationService = new NotificationService(restTemplate);
+    }
+
+    @Test
+    public void shouldSendNotificationSuccessfully() {
+        // Arrange
+        String url = "http://other-module-url/notify?state=resultUpdated";
+        ResponseEntity<Void> successResponse = new ResponseEntity<>(HttpStatus.OK);
+
+        when(restTemplate.getForEntity(url, Void.class)).thenReturn(successResponse);
+
+        // Act
+        notificationService.notifyOtherModule();
+
+        // Assert
+        // Using AssertJ assertions in BDD style
+        verify(restTemplate, times(1)).getForEntity(url, Void.class);
+        // Verify that the notification was sent successfully
+        assertThat(successResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void shouldHandleFailureToSendNotification() {
+        // Arrange
+        String url = "http://other-module-url/notify?state=resultUpdated";
+        ResponseEntity<Void> failureResponse = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        when(restTemplate.getForEntity(url, Void.class)).thenReturn(failureResponse);
+
+        // Act
+        notificationService.notifyOtherModule();
+
+        // Assert
+        // Using AssertJ assertions in BDD style
+        verify(restTemplate, times(1)).getForEntity(url, Void.class);
+        // Verify that the notification failed to send
+        assertThat(failureResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+}
